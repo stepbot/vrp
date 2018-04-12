@@ -19,11 +19,13 @@ def RandomRouter(trucks,orders):
     schedule = {}
     schedule['queues'] = []
     schedule['cost'] = inf
+    schedule['requiredTime'] = inf
     for truck in trucks:
         queue = {}
         queue['truck'] = truck
         queue['orders'] = []
         queue['cost'] = inf
+        queue['requiredTime'] = inf
         schedule['queues'].append(queue)
 
     for order in orders:
@@ -39,16 +41,27 @@ def SimpleScheduleEval(schedule):
     speed = 45
     for queue in schedule['queues']:
         queue['cost'] = 0.0
+        queue['requiredTime'] = 0.0
         truck = queue['truck']
         for order in queue['orders']:
             if order['quantity'] > truck['capacity']:
                 schedule['cost'] = inf
                 queue['cost'] = inf
+                queue['requiredTime'] = inf
             else:
                 distance = Distance(int(order['x']),int(order['y']))
-                marginalCost = ((2*distance)/speed)*int(truck['cost'])
+                marginalTime = ((2*distance)/speed)
+                queue['requiredTime'] += marginalTime
+                marginalCost = marginalTime*int(truck['cost'])
                 queue['cost'] += marginalCost
                 schedule['cost']+= marginalCost
+
+    maxTime = 0.0
+    for queue in schedule['queues']:
+        if queue['requiredTime'] > maxTime:
+            maxTime = queue['requiredTime']
+
+    schedule['requiredTime'] =  maxTime
 
     return schedule
 
@@ -70,4 +83,5 @@ def randomOptimizer(trucks,orders,attempts):
 
 exampleSchedule = randomOptimizer(exampleTrucks,exampleOrders,1000)
 print(exampleSchedule)
-print('total cost of schedule: ',exampleSchedule['cost'])
+print('total cost of schedule: $',exampleSchedule['cost'])
+print('total time of schedule: ',exampleSchedule['requiredTime'],'h')
