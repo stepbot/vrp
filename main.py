@@ -3,7 +3,7 @@ from math import sqrt,inf
 from operator import itemgetter
 
 
-exampleTrucks = [{"id":"0","capacity":"5","cost":"60"},{"id":"1","capacity":"5","cost":"60"},{"id":"2","capacity":"10","cost":"90"}]
+exampleTrucks = [{"id":"0","capacity":"5","cost":"60"},{"id":"1","capacity":"5","cost":"60"},{"id":"2","capacity":"10","cost":"90"},{"id":"3","capacity":"20","cost":"120"}]
 exampleOrders = [{"id":"0","quantity":"2","x":"10","y":"10"},{"id":"1","quantity":"10","x":"10","y":"10"},{"id":"2","quantity":"2","x":"10","y":"10"},{"id":"3","quantity":"8","x":"10","y":"10"},{"id":"4","quantity":"4","x":"10","y":"10"}]
 
 def Distance(x,y):
@@ -103,14 +103,18 @@ def SimpleScheduleEval(schedule):
 
     return schedule
 
-def SimpleScheduleValidator(schedule):
+def SimpleScheduleValidator(schedule,orders):
     validFlag = True
+    numOfOrders = 0
     for queue in schedule['queues']:
         truck = queue['truck']
         for order in queue['orders']:
+            numOfOrders += 1
             if order['quantity'] > truck['capacity']:
                 validFlag = False
                 break
+    if  numOfOrders != len(orders):
+        validFlag = False
 
     return validFlag
 
@@ -133,7 +137,7 @@ def RandomOptimizer(trucks,orders,attempts):
 print('using randomOptimizer')
 exampleSchedule = RandomOptimizer(exampleTrucks,exampleOrders,100000)
 print(exampleSchedule)
-print('schedule passes validation? ', SimpleScheduleValidator(exampleSchedule))
+print('schedule passes validation? ', SimpleScheduleValidator(exampleSchedule,exampleOrders))
 print('total cost of schedule: $',exampleSchedule['cost'])
 print('total time of schedule: ',exampleSchedule['requiredTime'],'h')
 
@@ -141,6 +145,6 @@ print('using HeuristicRouter')
 exampleSchedule = HeuristicRouter(exampleTrucks,exampleOrders)
 exampleSchedule = SimpleScheduleEval(exampleSchedule)
 print(exampleSchedule)
-print('schedule passes validation? ', SimpleScheduleValidator(exampleSchedule))
+print('schedule passes validation? ', SimpleScheduleValidator(exampleSchedule,exampleOrders))
 print('total cost of schedule: $',exampleSchedule['cost'])
 print('total time of schedule: ',exampleSchedule['requiredTime'],'h')
