@@ -3,8 +3,8 @@ from math import sqrt,inf
 from operator import itemgetter
 
 
-exampleTrucks = [{"id":"0","capacity":"5","cost":"60"},{"id":"1","capacity":"5","cost":"60"},{"id":"2","capacity":"10","cost":"90"},{"id":"3","capacity":"20","cost":"120"}]
-exampleOrders = [{"id":"0","quantity":"2","x":"10","y":"10"},{"id":"1","quantity":"10","x":"10","y":"10"},{"id":"2","quantity":"2","x":"10","y":"10"},{"id":"3","quantity":"8","x":"10","y":"10"},{"id":"4","quantity":"4","x":"10","y":"10"}]
+exampleTrucks = [{"id":0,"capacity":5,"cost":60},{"id":1,"capacity":5,"cost":60},{"id":2,"capacity":10,"cost":90},{"id":3,"capacity":20,"cost":120}]
+exampleOrders = [{"id":0,"quantity":2,"x":10,"y":10},{"id":1,"quantity":2,"x":10,"y":10},{"id":2,"quantity":2,"x":10,"y":10},{"id":3,"quantity":2,"x":10,"y":10},{"id":4,"quantity":8,"x":10,"y":10}]
 
 def Distance(x,y):
     distance = sqrt((x*x)+(y*y))
@@ -54,17 +54,24 @@ def HeuristicRouter(trucks,orders):
         schedule['queues'].append(queue)
 
     for order in orders:
+        #print('scheduling order ',order['id'])
         for queue in schedule['queues']:
+            #print('checking truck ',queue['truck']['id'])
             truck = queue['truck']
             if order['quantity']<= truck['capacity']:
+                #print('truck ',truck['id'], ' has sufficient capacity')
                 queueLength = len(queue['orders'])
                 targetCapacity = truck['capacity']
+                currentTruckID = truck['id']
                 betterFlag = False
                 for comparisonQueue in schedule['queues']:
-                    if comparisonQueue['truck']['capacity'] == targetCapacity:
-                        if len(comparisonQueue['orders']) < queueLength:
-                            betterFlag = True
+                    if truck['id'] != comparisonQueue['truck']['id']:
+                        if comparisonQueue['truck']['capacity'] == targetCapacity:
+                            if len(comparisonQueue['orders']) < queueLength:
+                                #print('deffering assignment of order ',order['id'],' to truck ',truck['id'],' as truck ',comparisonQueue['truck']['id'],' is better suited' )
+                                betterFlag = True
                 if not betterFlag:
+                    #print('assigning order ',order['id'],' to truck  ',truck['id'])
                     queue['orders'].append(order)
                     break
 
@@ -114,6 +121,7 @@ def SimpleScheduleValidator(schedule,orders):
                 validFlag = False
                 break
     if  numOfOrders != len(orders):
+        print(numOfOrders,' orders scheduled out of ',len(orders))
         validFlag = False
 
     return validFlag
@@ -135,7 +143,7 @@ def RandomOptimizer(trucks,orders,attempts):
 
 
 print('using randomOptimizer')
-exampleSchedule = RandomOptimizer(exampleTrucks,exampleOrders,100000)
+exampleSchedule = RandomOptimizer(exampleTrucks,exampleOrders,10000)
 print(exampleSchedule)
 print('schedule passes validation? ', SimpleScheduleValidator(exampleSchedule,exampleOrders))
 print('total cost of schedule: $',exampleSchedule['cost'])
