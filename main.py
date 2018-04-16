@@ -1,10 +1,23 @@
-from random import randint
+from random import randint,uniform
 from math import sqrt,inf
 from operator import itemgetter
 
 
-exampleTrucks = [{"id":0,"capacity":5,"cost":60},{"id":1,"capacity":5,"cost":60},{"id":2,"capacity":10,"cost":90},{"id":3,"capacity":20,"cost":120}]
-exampleOrders = [{"id":0,"quantity":2,"x":10,"y":10},{"id":1,"quantity":2,"x":10,"y":10},{"id":2,"quantity":2,"x":10,"y":10},{"id":3,"quantity":2,"x":10,"y":10},{"id":4,"quantity":8,"x":10,"y":10}]
+def OrderGenerator(numOfOrders,quantityLimit,distanceLimit):
+    orders = []
+    for i in range(numOfOrders):
+        order = {}
+        order['id']=i
+        order['quantity']=randint(1,quantityLimit)
+        order['x']=uniform(0,distanceLimit)
+        order['y']=uniform(0,distanceLimit)
+
+        orders.append(order)
+
+    return orders
+
+
+
 
 def Distance(x,y):
     distance = sqrt((x*x)+(y*y))
@@ -12,20 +25,19 @@ def Distance(x,y):
 
 def RandomRouter(trucks,orders):
     schedule = {}
-    for order in orders:
-        schedule[order['id']] = str(randint(0,len(trucks)-1))
-    return schedule
-
-def RandomRouter(trucks,orders):
-    schedule = {}
     schedule['queues'] = []
-    schedule['cost'] = inf
+    schedule['directCost'] = inf
+    schedule['oppurtunityCost'] = inf
+    schedule['totalCost'] = inf
     schedule['requiredTime'] = inf
+
     for truck in trucks:
         queue = {}
         queue['truck'] = truck
         queue['orders'] = []
-        queue['cost'] = inf
+        queue['directCost'] = inf
+        queue['oppurtunityCost'] = inf
+        queue['totalCost'] = inf
         queue['requiredTime'] = inf
         schedule['queues'].append(queue)
 
@@ -39,17 +51,21 @@ def RandomRouter(trucks,orders):
 def HeuristicRouter(trucks,orders):
     schedule = {}
     schedule['queues'] = []
-    schedule['cost'] = inf
+    schedule['directCost'] = inf
+    schedule['oppurtunityCost'] = inf
+    schedule['totalCost'] = inf
     schedule['requiredTime'] = inf
 
-    trucks.sort(key=itemgetter('capacity'),reverse=True)
+    trucks.sort(key=itemgetter('capacity'))
     orders.sort(key=itemgetter('quantity'),reverse=True)
 
     for truck in trucks:
         queue = {}
         queue['truck'] = truck
         queue['orders'] = []
-        queue['cost'] = inf
+        queue['directCost'] = inf
+        queue['oppurtunityCost'] = inf
+        queue['totalCost'] = inf
         queue['requiredTime'] = inf
         schedule['queues'].append(queue)
 
@@ -82,24 +98,38 @@ def HeuristicRouter(trucks,orders):
 
 
 def SimpleScheduleEval(schedule):
-    schedule['cost'] = 0.0
+    schedule['directCost'] = 0.0
+    schedule['oppurtunityCost'] = 0.0
+    schedule['totalCost'] = 0.0
     speed = 45
     for queue in schedule['queues']:
-        queue['cost'] = 0.0
+        queue['directCost'] = 0.0
+        queue['oppurtunityCost'] = 0.0
+        queue['totalCost'] = 0.0
         queue['requiredTime'] = 0.0
         truck = queue['truck']
         for order in queue['orders']:
             if order['quantity'] > truck['capacity']:
-                schedule['cost'] = inf
-                queue['cost'] = inf
+                schedule['directCost'] = inf
+                queue['directCost'] = inf
+                queue['oppurtunityCost'] = inf
+                queue['totalCost'] = inf
                 queue['requiredTime'] = inf
             else:
                 distance = Distance(int(order['x']),int(order['y']))
                 marginalTime = ((2*distance)/speed)
                 queue['requiredTime'] += marginalTime
-                marginalCost = marginalTime*int(truck['cost'])
-                queue['cost'] += marginalCost
-                schedule['cost']+= marginalCost
+                directMarginalCost = marginalTime*int(truck['cost'])
+                oppurtunityMarginalCost = directMarginalCost*((truck['capacity']-order['quantity'])/truck['capacity'])
+                queue['directCost'] += directMarginalCost
+                schedule['directCost']+= directMarginalCost
+                queue['oppurtunityCost'] += oppurtunityMarginalCost
+                schedule['oppurtunityCost']+= oppurtunityMarginalCost
+
+                queue['totalCost'] += directMarginalCost
+                schedule['totalCost']+= directMarginalCost
+                queue['totalCost'] += oppurtunityMarginalCost
+                schedule['totalCost']+= oppurtunityMarginalCost
 
     maxTime = 0.0
     for queue in schedule['queues']:
@@ -134,25 +164,27 @@ def RandomOptimizer(trucks,orders,attempts):
         canidateSchedules.append(SimpleScheduleEval(RandomRouter(trucks,orders)))
 
     for schedule in canidateSchedules:
-        if schedule['cost'] < bestCost:
+        if schedule['totalCost'] < bestCost:
             bestSchedule = schedule
-            bestCost = schedule['cost']
+            bestCost = schedule['totalCost']
 
     return bestSchedule
 
-
-
+exampleTrucks = [{"id":0,"capacity":5,"cost":60},{"id":1,"capacity":5,"cost":60},{"id":2,"capacity":10,"cost":90}]
+exampleOrders = OrderGenerator(20,10,35)
+'''
 print('using randomOptimizer')
-exampleSchedule = RandomOptimizer(exampleTrucks,exampleOrders,10000)
+exampleSchedule = RandomOptimizer(exampleTrucks,exampleOrders,1000000)
 print(exampleSchedule)
 print('schedule passes validation? ', SimpleScheduleValidator(exampleSchedule,exampleOrders))
-print('total cost of schedule: $',exampleSchedule['cost'])
+print('total cost of schedule: $',exampleSchedule['totalCost'])
 print('total time of schedule: ',exampleSchedule['requiredTime'],'h')
+'''
 
 print('using HeuristicRouter')
 exampleSchedule = HeuristicRouter(exampleTrucks,exampleOrders)
 exampleSchedule = SimpleScheduleEval(exampleSchedule)
 print(exampleSchedule)
 print('schedule passes validation? ', SimpleScheduleValidator(exampleSchedule,exampleOrders))
-print('total cost of schedule: $',exampleSchedule['cost'])
+print('total cost of schedule: $',exampleSchedule['totalCost'])
 print('total time of schedule: ',exampleSchedule['requiredTime'],'h')
