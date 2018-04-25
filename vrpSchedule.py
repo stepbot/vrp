@@ -20,5 +20,5 @@ if args.verbose:
     print('total cost of schedule: $',schedule['totalCost'])
     print('total time of schedule: ',schedule['requiredTime'],'h')
 
-with open('schedule.json','w') as outfile:
+with open('data/schedule.json','w') as outfile:
     json.dump(schedule,outfile)
