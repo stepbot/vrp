@@ -13,10 +13,10 @@ Delivery truck speed is currently fixed at 45mph based on straight line distance
 
 
 ## installation
-1. download code or clone repository
-2. change directory into vrp folder
-3. install python
-4. call vrpSchedule to schedule your routing problem
+1.  download code or clone repository
+2.  change directory into vrp folder
+3.  install python
+4.  call vrpSchedule to schedule your routing problem
 
 e.g.
 
