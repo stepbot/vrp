@@ -1,10 +1,11 @@
-from random import randint,uniform
+from random import randint,uniform,shuffle,choice
 from math import sqrt,inf
 from operator import itemgetter
+from collections import deque
 
 
 def OrderGenerator(numOfOrders,quantityLimit,distanceLimit):
-    orders = []
+    orders = deque()
     for i in range(numOfOrders):
         order = {}
         order['id']=i
@@ -17,11 +18,44 @@ def OrderGenerator(numOfOrders,quantityLimit,distanceLimit):
     return orders
 
 
-
-
 def Distance(x,y):
     distance = sqrt((x*x)+(y*y))
     return distance
+
+def DistanceBetween(x1,y1,x2,y2):
+    distance = sqrt(((x2-x1)**2)+((y2-y1)**2))
+    return distance
+
+def CapacityCheck(run,checkOrder):
+    validFlag = True
+    quantityTotal = checkOrder['quantity']
+    quantityTotal += run['quantity']
+
+    totalOrders = len(run['orders'])+1
+
+    if run['truck']['capacity'] < quantityTotal:
+        validFlag = False
+
+    if run['truck']['maxOrdersPerRun'] < totalOrders:
+        validFlag = False
+
+    return validFlag
+
+def PrettyPrintSchedule(schedule):
+    for queue in schedule['queues']:
+        print('Truck ',queue['truck']['id'],' with capacity of ',queue['truck']['capacity'])
+        if len(queue['runs']) == 0:
+            print('Not used')
+        else:
+            for ii in range(len(queue['runs'])):
+                print('\tRun ',ii,' total of ',queue['runs'][ii]['quantity'],' units')
+                for order in queue['runs'][ii]['orders']:
+                    print('\t\tOrder ',order['id'],' of ',order['quantity'],' units')
+
+
+
+
+
 
 def RandomRouter(trucks,orders):
     schedule = {}
@@ -31,22 +65,60 @@ def RandomRouter(trucks,orders):
     schedule['totalCost'] = inf
     schedule['requiredTime'] = inf
 
+    runs = []
+    shuffle(orders)
+    workingOrders = deque(orders)
+
+
+    workingRun = {}
+    workingRun['truck'] = {}
+    workingRun['quantity'] = 0
+    workingRun['orders'] = deque()
+
+    while len(workingOrders)>0:
+        for ii in range(len(workingOrders)):
+            if len(workingRun['truck'])==0:
+                workingRun['truck'] = choice(trucks)
+                workingOrder = workingOrders.pop()
+                if CapacityCheck(workingRun,workingOrder):
+                    workingRun['orders'].append(workingOrder)
+                    workingRun['quantity'] += workingOrder['quantity']
+                else:
+                    workingOrders.appendleft(workingOrder)
+            else:
+                workingOrder = workingOrders.pop()
+                if CapacityCheck(workingRun,workingOrder):
+                    workingRun['orders'].append(workingOrder)
+                    workingRun['quantity'] += workingOrder['quantity']
+                else:
+                    workingOrders.appendleft(workingOrder)
+        runs.append(workingRun)
+        workingRun = {}
+        workingRun['truck'] = {}
+        workingRun['quantity'] = 0
+        workingRun['orders'] = deque()
+
     for truck in trucks:
         queue = {}
         queue['truck'] = truck
-        queue['orders'] = []
+        queue['runs'] = deque()
         queue['directCost'] = inf
         queue['oppurtunityCost'] = inf
         queue['totalCost'] = inf
         queue['requiredTime'] = inf
         schedule['queues'].append(queue)
 
-    for order in orders:
-        queue = schedule['queues'][randint(0,len(trucks)-1)]
-        queue['orders'].append(order)
+    shuffle(runs)
 
+    for queue in schedule['queues']:
+        for run in runs:
+            if run['truck']['id'] ==  queue['truck']['id']:
+                if run['quantity'] > 0:
+                    queue['runs'].append(run)
 
     return schedule
+
+
 
 def HeuristicRouter(trucks,orders):
     schedule = {}
@@ -100,27 +172,40 @@ def HeuristicRouter(trucks,orders):
 def SimpleScheduleEval(schedule):
     schedule['directCost'] = 0.0
     schedule['oppurtunityCost'] = 0.0
+    schedule['overheadCost'] = 0.0
     schedule['totalCost'] = 0.0
     speed = 45
+    overheadCost = 270
+
     for queue in schedule['queues']:
         queue['directCost'] = 0.0
         queue['oppurtunityCost'] = 0.0
         queue['totalCost'] = 0.0
         queue['requiredTime'] = 0.0
         truck = queue['truck']
-        for order in queue['orders']:
-            if order['quantity'] > truck['capacity']:
+        for run in queue['runs']:
+            if run['quantity'] > truck['capacity']:
                 schedule['directCost'] = inf
                 queue['directCost'] = inf
                 queue['oppurtunityCost'] = inf
                 queue['totalCost'] = inf
                 queue['requiredTime'] = inf
             else:
-                distance = Distance(int(order['x']),int(order['y']))
+                truckXPosition = 0
+                truckYPosition = 0
+                distance = 0
+
+                for order in run['orders']:
+                    distance += DistanceBetween(truckXPosition,truckYPosition,order['x'],order['y'])
+                    truckXPosition = order['x']
+                    truckXPosition = order['y']
+                distance += DistanceBetween(truckXPosition,truckYPosition,0,0)
+
                 marginalTime = ((2*distance)/speed)
                 queue['requiredTime'] += marginalTime
                 directMarginalCost = marginalTime*int(truck['cost'])
-                oppurtunityMarginalCost = directMarginalCost*((truck['capacity']-order['quantity'])/truck['capacity'])
+                oppurtunityMarginalCost = directMarginalCost*((truck['capacity']-run['quantity'])/truck['capacity'])
+
                 queue['directCost'] += directMarginalCost
                 schedule['directCost']+= directMarginalCost
                 queue['oppurtunityCost'] += oppurtunityMarginalCost
@@ -137,19 +222,32 @@ def SimpleScheduleEval(schedule):
             maxTime = queue['requiredTime']
 
     schedule['requiredTime'] =  maxTime
+    schedule['overheadCost'] = schedule['requiredTime']*overheadCost
+    schedule['totalCost'] += schedule['overheadCost']
 
     return schedule
 
 def SimpleScheduleValidator(schedule,orders):
     validFlag = True
     numOfOrders = 0
+    seenOrders = set()
     for queue in schedule['queues']:
         truck = queue['truck']
-        for order in queue['orders']:
-            numOfOrders += 1
-            if order['quantity'] > truck['capacity']:
+        for run in queue['runs']:
+            if len(run['orders']) > truck['maxOrdersPerRun']:
                 validFlag = False
-                break
+
+            runQuantity = run['quantity']
+            for order in run['orders']:
+                numOfOrders += 1
+                if order['id'] in seenOrders:
+                    validFlag = False
+                else:
+                    seenOrders.add(order['id'])
+
+            if runQuantity > truck['capacity']:
+                validFlag = False
+
     if  numOfOrders != len(orders):
         print(numOfOrders,' orders scheduled out of ',len(orders))
         validFlag = False
@@ -170,17 +268,18 @@ def RandomOptimizer(trucks,orders,attempts):
 
     return bestSchedule
 
-exampleTrucks = [{"id":0,"capacity":5,"cost":60},{"id":1,"capacity":5,"cost":60},{"id":2,"capacity":10,"cost":90}]
-exampleOrders = OrderGenerator(20,10,35)
-'''
+exampleTrucks = [{"id":0,"capacity":5,"maxOrdersPerRun":2,"cost":60},{"id":1,"capacity":5,"maxOrdersPerRun":2,"cost":60},{"id":2,"capacity":10,"maxOrdersPerRun":2,"cost":90}]
+exampleOrders = OrderGenerator(10,10,35)
+
 print('using randomOptimizer')
-exampleSchedule = RandomOptimizer(exampleTrucks,exampleOrders,1000000)
-print(exampleSchedule)
+exampleSchedule = RandomOptimizer(exampleTrucks,exampleOrders,10000)
 print('schedule passes validation? ', SimpleScheduleValidator(exampleSchedule,exampleOrders))
+PrettyPrintSchedule(exampleSchedule)
 print('total cost of schedule: $',exampleSchedule['totalCost'])
 print('total time of schedule: ',exampleSchedule['requiredTime'],'h')
-'''
 
+
+'''
 print('using HeuristicRouter')
 exampleSchedule = HeuristicRouter(exampleTrucks,exampleOrders)
 exampleSchedule = SimpleScheduleEval(exampleSchedule)
@@ -188,3 +287,14 @@ print(exampleSchedule)
 print('schedule passes validation? ', SimpleScheduleValidator(exampleSchedule,exampleOrders))
 print('total cost of schedule: $',exampleSchedule['totalCost'])
 print('total time of schedule: ',exampleSchedule['requiredTime'],'h')
+'''
+
+'''
+print('using RandomRouter')
+exampleSchedule = RandomRouter(exampleTrucks,exampleOrders)
+exampleSchedule = SimpleScheduleEval(exampleSchedule)
+print(exampleSchedule)
+print('schedule passes validation? ', SimpleScheduleValidator(exampleSchedule,exampleOrders))
+print('total cost of schedule: $',exampleSchedule['totalCost'])
+print('total time of schedule: ',exampleSchedule['requiredTime'],'h')
+'''
