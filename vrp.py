@@ -101,7 +101,7 @@ def RandomRouter(trucks,orders):
     for truck in trucks:
         queue = {}
         queue['truck'] = truck
-        queue['runs'] = deque()
+        queue['runs'] = []
         queue['directCost'] = inf
         queue['oppurtunityCost'] = inf
         queue['totalCost'] = inf
@@ -112,6 +112,7 @@ def RandomRouter(trucks,orders):
 
     for queue in schedule['queues']:
         for run in runs:
+            run['orders'] = list(run['orders'])
             if run['truck']['id'] ==  queue['truck']['id']:
                 if run['quantity'] > 0:
                     queue['runs'].append(run)
