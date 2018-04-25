@@ -5,7 +5,7 @@ from collections import deque
 
 
 def OrderGenerator(numOfOrders,quantityLimit,distanceLimit):
-    orders = deque()
+    orders = []
     for i in range(numOfOrders):
         order = {}
         order['id']=i
@@ -101,7 +101,7 @@ def RandomRouter(trucks,orders):
     for truck in trucks:
         queue = {}
         queue['truck'] = truck
-        queue['runs'] = deque()
+        queue['runs'] = []
         queue['directCost'] = inf
         queue['oppurtunityCost'] = inf
         queue['totalCost'] = inf
@@ -112,6 +112,7 @@ def RandomRouter(trucks,orders):
 
     for queue in schedule['queues']:
         for run in runs:
+            run['orders'] = list(run['orders'])
             if run['truck']['id'] ==  queue['truck']['id']:
                 if run['quantity'] > 0:
                     queue['runs'].append(run)
@@ -268,16 +269,15 @@ def RandomOptimizer(trucks,orders,attempts):
 
     return bestSchedule
 
-exampleTrucks = [{"id":0,"capacity":5,"maxOrdersPerRun":2,"cost":60},{"id":1,"capacity":5,"maxOrdersPerRun":2,"cost":60},{"id":2,"capacity":10,"maxOrdersPerRun":2,"cost":90}]
-exampleOrders = OrderGenerator(10,10,35)
 
+'''
 print('using randomOptimizer')
 exampleSchedule = RandomOptimizer(exampleTrucks,exampleOrders,10000)
 print('schedule passes validation? ', SimpleScheduleValidator(exampleSchedule,exampleOrders))
 PrettyPrintSchedule(exampleSchedule)
 print('total cost of schedule: $',exampleSchedule['totalCost'])
 print('total time of schedule: ',exampleSchedule['requiredTime'],'h')
-
+'''
 
 '''
 print('using HeuristicRouter')
