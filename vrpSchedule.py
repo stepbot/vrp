@@ -6,7 +6,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-v","--verbose",help="increase output verbosity",action="store_true")
 parser.add_argument("-o","--orders",type=argparse.FileType('r'),help="orders to be scheduled as a json file")
 parser.add_argument("-t","--trucks",type=argparse.FileType('r'),help="trucks to be scheduled as a json file")
-parser.add_argument("-i","--iterations",type=int,nargs='?',const=1000,default=1000,help="number of iterations to run")
+parser.add_argument("-i","--iterations",type=int,nargs='?',const=1000,default=1000,help="number of iterations to run (defaults to 1000)")
 args = parser.parse_args()
 
 orders = json.load(args.orders)
