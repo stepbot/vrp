@@ -1,0 +1,1 @@
+[{"id": 0, "capacity": 5, "maxOrdersPerRun": 2, "cost": 60}, {"id": 1, "capacity": 5, "maxOrdersPerRun": 2, "cost": 60}, {"id": 2, "capacity": 10, "maxOrdersPerRun": 2, "cost": 90}]
