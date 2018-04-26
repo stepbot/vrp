@@ -49,6 +49,14 @@ def CapacityCheck(run,checkOrder):
 
     return validFlag
 
+def TemporalConsistencyCheck(run,checkOrder):
+    validFlag = True
+    if len(run['orders'])>0:
+        if checkOrder['timeWindowEnd'] < run['orders'][-1]['timeWindowStart']:
+            validFlag = False
+
+    return validFlag
+
 def PrettyPrintSchedule(schedule):
     for queue in schedule['queues']:
         print('Truck ',queue['truck']['id'],' with capacity of ',queue['truck']['capacity'])
