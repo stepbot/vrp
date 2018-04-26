@@ -239,8 +239,10 @@ def SimpleScheduleEval(schedule):
                     truckXPosition = order['x']
                     truckXPosition = order['y']
 
+
                     marginalTime = (marginalDistance/speed)
                     truckTime += marginalTime
+                    order['servedAt'] = truckTime
                     queue['requiredTime'] += marginalTime
 
                     if truckTime > order['timeWindowEnd']:
