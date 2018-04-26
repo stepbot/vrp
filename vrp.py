@@ -96,14 +96,25 @@ def RandomRouter(trucks,orders):
             if len(workingRun['truck'])==0:
                 workingRun['truck'] = choice(trucks)
                 workingOrder = workingOrders.pop()
-                if CapacityCheck(workingRun,workingOrder):
+
+                validOrder = False
+                if (CapacityCheck(workingRun,workingOrder) and TemporalConsistencyCheck(workingRun,workingOrder)):
+                    validOrder = True
+
+
+                if validOrder:
                     workingRun['orders'].append(workingOrder)
                     workingRun['quantity'] += workingOrder['quantity']
                 else:
                     workingOrders.appendleft(workingOrder)
             else:
                 workingOrder = workingOrders.pop()
-                if CapacityCheck(workingRun,workingOrder):
+
+                validOrder = False
+                if (CapacityCheck(workingRun,workingOrder) and TemporalConsistencyCheck(workingRun,workingOrder)):
+                    validOrder = True
+
+                if validOrder:
                     workingRun['orders'].append(workingOrder)
                     workingRun['quantity'] += workingOrder['quantity']
                 else:
