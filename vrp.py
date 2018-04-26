@@ -5,6 +5,10 @@ from collections import deque
 
 
 def OrderGenerator(numOfOrders,quantityLimit,distanceLimit):
+    deliveryWindowStartLimit = 7
+    deliveryWindowEndLimit = 17
+    deliveryWindowLengthMinLimit = 2
+    deliveryWindowLengthMaxLimit = deliveryWindowEndLimit-deliveryWindowStartLimit
     orders = []
     for i in range(numOfOrders):
         order = {}
@@ -12,6 +16,10 @@ def OrderGenerator(numOfOrders,quantityLimit,distanceLimit):
         order['quantity']=randint(1,quantityLimit)
         order['x']=uniform(0,distanceLimit)
         order['y']=uniform(0,distanceLimit)
+        order['timeWindowLength']=randint(deliveryWindowLengthMinLimit,deliveryWindowLengthMaxLimit)
+        order['timeWindowStart']=randint(deliveryWindowStartLimit,deliveryWindowEndLimit-order['timeWindowLength'])
+        order['timeWindowEnd']=order['timeWindowStart']+order['timeWindowLength']
+
 
         orders.append(order)
 
