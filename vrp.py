@@ -80,6 +80,7 @@ def RandomRouter(trucks,orders):
     schedule['oppurtunityCost'] = inf
     schedule['totalCost'] = inf
     schedule['requiredTime'] = inf
+    schedule['truckStartTime'] = 7
 
     runs = []
     shuffle(orders)
@@ -201,36 +202,71 @@ def SimpleScheduleEval(schedule):
     schedule['directCost'] = 0.0
     schedule['oppurtunityCost'] = 0.0
     schedule['overheadCost'] = 0.0
+    schedule['errorCost'] = 0.0
     schedule['totalCost'] = 0.0
     speed = 45
     overheadCost = 270
+    timeErrorCost = 2*overheadCost
 
     for queue in schedule['queues']:
         queue['directCost'] = 0.0
         queue['oppurtunityCost'] = 0.0
+        queue['errorCost'] = 0.0
         queue['totalCost'] = 0.0
         queue['requiredTime'] = 0.0
         truck = queue['truck']
+        truckTime = schedule['truckStartTime']
         for run in queue['runs']:
             if run['quantity'] > truck['capacity']:
                 schedule['directCost'] = inf
                 queue['directCost'] = inf
                 queue['oppurtunityCost'] = inf
+                queue['errorCost'] = inf
                 queue['totalCost'] = inf
                 queue['requiredTime'] = inf
+                truckXPosition = 0
+                truckYPosition = 0
+                truckTime = inf
+                distance = 0
             else:
                 truckXPosition = 0
                 truckYPosition = 0
                 distance = 0
+                errorTime = 0
 
                 for order in run['orders']:
-                    distance += DistanceBetween(truckXPosition,truckYPosition,order['x'],order['y'])
+                    marginalDistance = DistanceBetween(truckXPosition,truckYPosition,order['x'],order['y'])
                     truckXPosition = order['x']
                     truckXPosition = order['y']
-                distance += DistanceBetween(truckXPosition,truckYPosition,0,0)
 
-                marginalTime = ((2*distance)/speed)
+                    marginalTime = (marginalDistance/speed)
+                    truckTime += marginalTime
+                    queue['requiredTime'] += marginalTime
+
+                    if truckTime > order['timeWindowEnd']:
+                        errorTime += truckTime-order['timeWindowEnd']
+
+                    elif truckTime < order['timeWindowStart']:
+                        errorTime += order['timeWindowEnd']-truckTime
+
+                    else:
+                        errorTime += 0
+
+                    distance += marginalDistance
+
+
+
+                marginalDistance = DistanceBetween(truckXPosition,truckYPosition,0,0)
+                marginalTime = (marginalDistance/speed)
+
+                truckXPosition = 0
+                truckXPosition = 0
+                truckTime += marginalTime
+
+                distance += marginalDistance
                 queue['requiredTime'] += marginalTime
+
+                errorMarginalCost = errorTime*timeErrorCost
                 directMarginalCost = marginalTime*int(truck['cost'])
                 oppurtunityMarginalCost = directMarginalCost*((truck['capacity']-run['quantity'])/truck['capacity'])
 
@@ -238,11 +274,15 @@ def SimpleScheduleEval(schedule):
                 schedule['directCost']+= directMarginalCost
                 queue['oppurtunityCost'] += oppurtunityMarginalCost
                 schedule['oppurtunityCost']+= oppurtunityMarginalCost
+                queue['errorCost'] += errorMarginalCost
+                schedule['errorCost']+= errorMarginalCost
 
                 queue['totalCost'] += directMarginalCost
                 schedule['totalCost']+= directMarginalCost
                 queue['totalCost'] += oppurtunityMarginalCost
                 schedule['totalCost']+= oppurtunityMarginalCost
+                queue['totalCost'] += errorMarginalCost
+                schedule['totalCost']+= errorMarginalCost
 
     maxTime = 0.0
     for queue in schedule['queues']:
