@@ -211,15 +211,22 @@ def HeuristicRouter(trucks,orders):
 
 
 def SimpleScheduleRunner(schedule,verbose):
+    # function to simulate a given schedule
+
     simulatedSchedule = deepcopy(schedule)
 
+    # cost tracking variables for schedulewide tracking
     simulatedSchedule['directCost'] = 0.0
     simulatedSchedule['oppurtunityCost'] = 0.0
     simulatedSchedule['overheadCost'] = 0.0
     simulatedSchedule['errorCost'] = 0.0
     simulatedSchedule['totalCost'] = 0.0
+    simulatedSchedule['errorTime'] = 0.0
 
     for queue in simulatedSchedule['queues']:
+        # iterate through each queue in schedule and simulate each run
+
+        # cost tracking variables for per queue tracking
         queue['directCost'] = 0.0
         queue['oppurtunityCost'] = 0.0
         queue['errorCost'] = 0.0
@@ -227,11 +234,19 @@ def SimpleScheduleRunner(schedule,verbose):
         queue['requiredTime'] = 0.0
         queue['errorTime'] = 0.0
 
+        # set current truck
         truck = queue['truck']
+
         if verbose:
             print('truck #{0:d}'.format(truck['id']))
+
+        # run numbering as runs are not uniquely numbered
         ii = 0
+
         for run in queue['runs']:
+            # iterate through each  run in queue and simulate
+
+            # cost tracking variables for per run tracking
             run['directCost'] = 0.0
             run['oppurtunityCost'] = 0.0
             run['errorCost'] = 0.0
@@ -239,7 +254,10 @@ def SimpleScheduleRunner(schedule,verbose):
             run['requiredTime'] = 0.0
             run['errorTime'] = 0.0
 
+
+            # penalty for over capacity runs
             if run['quantity'] > truck['capacity']:
+                # penalty multiplier starting at 10 and rising exponetially with excess quantity served
                 run['costMultiplier'] = 10*exp(run['quantity']-truck['capacity'])
             else:
                 run['costMultiplier'] = 1
@@ -248,79 +266,128 @@ def SimpleScheduleRunner(schedule,verbose):
                 print('\tstarts run #{0:d}'.format(ii))
                 print('\t\tdeparts home at ({0:5.2f},{1:5.2f},{2:5.2f})'.format(truck['x'],truck['y'],truck['time']))
 
+            # iterate run numbering
+
             ii += 1
+
             for order in run['orders']:
+                # iterate through each order in the run and simulate
+
+                # distance from current truck position to order location
                 marginalDistance = DistanceBetween(truck['x'],truck['y'],order['x'],order['y'])
+
+                # time required to travel from current location to order location
                 marginalTime = (marginalDistance/schedule['speed'])
+
+                # update truck state variables to fulfill order
                 truck['x'] = order['x']
                 truck['y'] = order['y']
                 truck['time'] += marginalTime
 
+                # note temporal effects of fulfilling order where necessary
                 order['servedAt'] = truck['time']
                 run['requiredTime'] += marginalTime
                 queue['requiredTime'] += marginalTime
 
+                # check if order was served on time and apply necessary penalties
                 if truck['time'] > order['timeWindowEnd']:
+                    # if truck is late
+
+                    # accumulate total error time
                     run['errorTime'] += truck['time']-order['timeWindowEnd']
                     queue['errorTime'] += run['errorTime']
 
+                    # caclculate of being late
                     run['errorCost'] += run['errorTime']*simulatedSchedule['lateTimeErrorCostRate']
 
                 elif truck['time'] < order['timeWindowStart']:
+                    # if truck is early
+
+                    # accumulate total error time
                     run['errorTime'] += order['timeWindowStart']-truck['time']
                     queue['errorTime'] += run['errorTime']
 
+                    # caclculate of being early
                     run['errorCost'] += run['errorTime']*simulatedSchedule['earlyTimeErrorCostRate']
 
                 else:
+                    # hopefully only when on time
+                    run['errorCost'] = 0
                     run['errorTime'] += 0
                     queue['errorTime'] += 0
 
                 if verbose:
                     print('\t\tarrives at order #{0:d} at ({1:5.2f},{2:5.2f},{3:5.2f})'.format(order['id'],truck['x'],truck['y'],truck['time']))
 
+                # note temporal effects of unloading order where necessary
                 truck['time'] += truck['unloadTime']
                 queue['requiredTime'] += truck['unloadTime']
                 run['requiredTime'] += truck['unloadTime']
 
-
+            # run complete so simulate return to base
+            # distance from current truck position to base location
             marginalDistance = DistanceBetween(truck['x'],truck['y'],truck['homeX'],truck['homeY'])
+            # time required to travel from current location to base location
             marginalTime = (marginalDistance/simulatedSchedule['speed'])
+
+            # update truck state variables to return to base
             truck['x'] = order['x']
             truck['y'] = order['y']
             truck['time'] += marginalTime
 
-
+            # note temporal effects of returning to base
             queue['requiredTime'] += marginalTime
             run['requiredTime'] += marginalTime
 
             if verbose:
                 print('\t\tarrives at home at ({0:5.2f},{1:5.2f},{2:5.2f})'.format(truck['x'],truck['y'],truck['time']))
 
+            # prepare truck for next run
             truck['time'] += truck['turnAroundTime']
             queue['requiredTime'] += truck['turnAroundTime']
             run['requiredTime'] += truck['turnAroundTime']
 
+            # calculate costs
+            # direct cost is actual incured cost to operate truck with penalty for being overcapacity
             run['directCost'] = run['costMultiplier']*run['requiredTime']*int(truck['cost'])
-            run['oppurtunityCost'] = run['directCost']*((truck['capacity']-run['quantity'])/truck['capacity'])
+
+            # oppurtunity cost is a fraction of the the direct cost of the run allocated in proportion to the underutilized capacity on truck
+            if run['costMultiplier'] != 1:
+                # only oppurtunity cost when not overcapacity
+                run['oppurtunityCost'] = run['directCost']*((truck['capacity']-run['quantity'])/truck['capacity'])
+            else:
+                run['oppurtunityCost'] = 0
+
+            # combine run cost contributers
             run['totalCost'] = run['directCost']+run['oppurtunityCost']+run['errorCost']
 
+            # accumulate error time to schedule
+            simulatedSchedule['errorTime']+= queue['errorTime']
+
+            # accumulate run costs to queue
             queue['directCost'] += run['directCost']
-            simulatedSchedule['directCost']+= run['directCost']
             queue['oppurtunityCost'] += run['oppurtunityCost']
-            simulatedSchedule['oppurtunityCost']+= run['oppurtunityCost']
             queue['errorCost'] += run['errorCost']
-            simulatedSchedule['errorCost']+= run['errorCost']
             queue['totalCost'] += run['totalCost']
+
+            # accumulate run costs to schedule
+            simulatedSchedule['directCost']+= run['directCost']
+            simulatedSchedule['oppurtunityCost']+= run['oppurtunityCost']
+            simulatedSchedule['errorCost']+= run['errorCost']
             simulatedSchedule['totalCost']+= run['totalCost']
 
+    # check for longest time taken by any schedule and set as schedule time
     maxTime = 0.0
     for queue in simulatedSchedule['queues']:
         if queue['requiredTime'] > maxTime:
             maxTime = queue['requiredTime']
 
     simulatedSchedule['requiredTime'] =  maxTime
+
+    # calculate overhead cost of operation of the schedule
     simulatedSchedule['overheadCost'] = simulatedSchedule['requiredTime']*simulatedSchedule['overheadCostRate']
+
+    # apply overhead to schedule total
     simulatedSchedule['totalCost'] += simulatedSchedule['overheadCost']
 
     return simulatedSchedule
