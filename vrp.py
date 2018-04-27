@@ -345,7 +345,7 @@ def SimpleScheduleValidator(schedule,orders):
 
     return validFlag
 
-def RandomOptimizer(trucks,orders,attempts):
+def RandomOptimizer(trucks,orders,attempts,verbose):
     canidateSchedules = []
     bestCost = inf
     bestSchedule = SimpleScheduleRunner(RandomRouter(trucks,orders),False)
@@ -356,6 +356,8 @@ def RandomOptimizer(trucks,orders,attempts):
         if schedule['totalCost'] < bestCost:
             bestSchedule = schedule
             bestCost = schedule['totalCost']
+            if verbose:
+                print('RandomOptimizer cost {0:.2f}'.format(bestCost))
 
     return bestSchedule
 
