@@ -12,11 +12,11 @@ args = parser.parse_args()
 orders = json.load(args.orders)
 trucks = json.load(args.trucks)
 
-schedule = vrp.RandomOptimizer(trucks,orders,args.iterations)
+schedule = vrp.RandomOptimizer(trucks,orders,args.iterations,args.verbose)
 
 if args.verbose:
     print('schedule passes validation? ', vrp.SimpleScheduleValidator(schedule,orders))
-    vrp.PrettyPrintSchedule(schedule)
+    vrp.PrettyPrintSimulatedSchedule(schedule)
     print('total cost of schedule: $',schedule['totalCost'])
     print('total time of schedule: ',schedule['requiredTime'],'h')
 
