@@ -350,7 +350,7 @@ def RandomOptimizer(trucks,orders,attempts,verbose):
     bestCost = inf
     bestSchedule = SimpleScheduleRunner(RandomRouter(trucks,orders),False)
     for i in range(attempts):
-        canidateSchedules.append(SimpleScheduleEval(RandomRouter(trucks,orders)))
+        canidateSchedules.append(SimpleScheduleRunner(RandomRouter(trucks,orders),False))
 
     for schedule in canidateSchedules:
         if schedule['totalCost'] < bestCost:
