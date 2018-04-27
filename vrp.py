@@ -1,7 +1,8 @@
 from random import randint,uniform,shuffle,choice
-from math import sqrt,inf
+from math import sqrt,inf,exp
 from operator import itemgetter
 from collections import deque
+from copy import deepcopy
 
 
 def OrderGenerator(numOfOrders,quantityLimit,distanceLimit):
@@ -89,6 +90,9 @@ def RandomRouter(trucks,orders):
     schedule['totalCost'] = inf
     schedule['requiredTime'] = inf
     schedule['truckStartTime'] = 7
+    schedule['speed'] = 45
+    schedule['overheadCostRate'] = 270
+    schedule['timeErrorCostRate'] = 2*schedule['overheadCostRate']
 
     runs = []
     shuffle(orders)
@@ -204,106 +208,115 @@ def HeuristicRouter(trucks,orders):
     return schedule
 
 
+def SimpleScheduleRunner(schedule,verbose):
+    simulatedSchedule = deepcopy(schedule)
 
+    simulatedSchedule['directCost'] = 0.0
+    simulatedSchedule['oppurtunityCost'] = 0.0
+    simulatedSchedule['overheadCost'] = 0.0
+    simulatedSchedule['errorCost'] = 0.0
+    simulatedSchedule['totalCost'] = 0.0
 
-def SimpleScheduleEval(schedule):
-    schedule['directCost'] = 0.0
-    schedule['oppurtunityCost'] = 0.0
-    schedule['overheadCost'] = 0.0
-    schedule['errorCost'] = 0.0
-    schedule['totalCost'] = 0.0
-    speed = 45
-    overheadCost = 270
-    timeErrorCost = 2*overheadCost
-
-    for queue in schedule['queues']:
+    for queue in simulatedSchedule['queues']:
         queue['directCost'] = 0.0
         queue['oppurtunityCost'] = 0.0
         queue['errorCost'] = 0.0
         queue['totalCost'] = 0.0
         queue['requiredTime'] = 0.0
+        queue['errorTime'] = 0.0
+
         truck = queue['truck']
-        truckTime = schedule['truckStartTime']
+        if verbose:
+            print('truck #{0:d}'.format(truck['id']))
+        ii = 0
         for run in queue['runs']:
+            run['directCost'] = 0.0
+            run['oppurtunityCost'] = 0.0
+            run['errorCost'] = 0.0
+            run['totalCost'] = 0.0
+            run['requiredTime'] = 0.0
+            run['errorTime'] = 0.0
+
             if run['quantity'] > truck['capacity']:
-                schedule['directCost'] = inf
-                queue['directCost'] = inf
-                queue['oppurtunityCost'] = inf
-                queue['errorCost'] = inf
-                queue['totalCost'] = inf
-                queue['requiredTime'] = inf
-                truckXPosition = 0
-                truckYPosition = 0
-                truckTime = inf
-                distance = 0
+                run['costMultiplier'] = 10*exp(run['quantity']-truck['capacity'])
             else:
-                truckXPosition = 0
-                truckYPosition = 0
-                distance = 0
-                errorTime = 0
+                run['costMultiplier'] = 1
 
-                for order in run['orders']:
-                    marginalDistance = DistanceBetween(truckXPosition,truckYPosition,order['x'],order['y'])
-                    truckXPosition = order['x']
-                    truckXPosition = order['y']
+            if verbose:
+                print('\tstarts run #{0:d}'.format(ii))
+                print('\t\tdeparts home at ({0:5.2f},{1:5.2f},{2:5.2f})'.format(truck['x'],truck['y'],truck['time']))
 
+            ii += 1
+            for order in run['orders']:
+                marginalDistance = DistanceBetween(truck['x'],truck['y'],order['x'],order['y'])
+                marginalTime = (marginalDistance/schedule['speed'])
+                truck['x'] = order['x']
+                truck['y'] = order['y']
+                truck['time'] += marginalTime
 
-                    marginalTime = (marginalDistance/speed)
-                    truckTime += marginalTime
-                    order['servedAt'] = truckTime
-                    queue['requiredTime'] += marginalTime
-
-                    if truckTime > order['timeWindowEnd']:
-                        errorTime += truckTime-order['timeWindowEnd']
-
-                    elif truckTime < order['timeWindowStart']:
-                        errorTime += order['timeWindowStart']-truckTime
-
-                    else:
-                        errorTime += 0
-
-                    distance += marginalDistance
-
-
-
-                marginalDistance = DistanceBetween(truckXPosition,truckYPosition,0,0)
-                marginalTime = (marginalDistance/speed)
-
-                truckXPosition = 0
-                truckXPosition = 0
-                truckTime += marginalTime
-
-                distance += marginalDistance
+                order['servedAt'] = truck['time']
+                run['requiredTime'] += marginalTime
                 queue['requiredTime'] += marginalTime
 
-                errorMarginalCost = errorTime*timeErrorCost
-                directMarginalCost = marginalTime*int(truck['cost'])
-                oppurtunityMarginalCost = directMarginalCost*((truck['capacity']-run['quantity'])/truck['capacity'])
+                if truck['time'] > order['timeWindowEnd']:
+                    queue['errorTime'] += truck['time']-order['timeWindowEnd']
 
-                queue['directCost'] += directMarginalCost
-                schedule['directCost']+= directMarginalCost
-                queue['oppurtunityCost'] += oppurtunityMarginalCost
-                schedule['oppurtunityCost']+= oppurtunityMarginalCost
-                queue['errorCost'] += errorMarginalCost
-                schedule['errorCost']+= errorMarginalCost
+                elif truck['time'] < order['timeWindowStart']:
+                    queue['errorTime'] += order['timeWindowStart']-truck['time']
 
-                queue['totalCost'] += directMarginalCost
-                schedule['totalCost']+= directMarginalCost
-                queue['totalCost'] += oppurtunityMarginalCost
-                schedule['totalCost']+= oppurtunityMarginalCost
-                queue['totalCost'] += errorMarginalCost
-                schedule['totalCost']+= errorMarginalCost
+                else:
+                    queue['errorTime'] += 0
+
+                if verbose:
+                    print('\t\tarrives at order #{0:d} at ({1:5.2f},{2:5.2f},{3:5.2f})'.format(order['id'],truck['x'],truck['y'],truck['time']))
+
+                truck['time'] += truck['unloadTime']
+                queue['requiredTime'] += truck['unloadTime']
+                run['requiredTime'] += truck['unloadTime']
+
+
+            marginalDistance = DistanceBetween(truck['x'],truck['y'],truck['homeX'],truck['homeY'])
+            marginalTime = (marginalDistance/simulatedSchedule['speed'])
+            truck['x'] = order['x']
+            truck['y'] = order['y']
+            truck['time'] += marginalTime
+
+
+            queue['requiredTime'] += marginalTime
+            run['requiredTime'] += marginalTime
+
+            if verbose:
+                print('\t\tarrives at home at ({0:5.2f},{1:5.2f},{2:5.2f})'.format(truck['x'],truck['y'],truck['time']))
+
+            truck['time'] += truck['turnAroundTime']
+            queue['requiredTime'] += truck['turnAroundTime']
+            run['requiredTime'] += truck['turnAroundTime']
+
+            run['directCost'] = run['costMultiplier']*run['requiredTime']*int(truck['cost'])
+            run['oppurtunityCost'] = run['directCost']*((truck['capacity']-run['quantity'])/truck['capacity'])
+            run['errorCost'] = run['errorTime']*simulatedSchedule['timeErrorCostRate']
+            run['totalCost'] = run['directCost']+run['oppurtunityCost']+run['errorCost']
+
+            queue['directCost'] += run['directCost']
+            simulatedSchedule['directCost']+= run['directCost']
+            queue['oppurtunityCost'] += run['oppurtunityCost']
+            simulatedSchedule['oppurtunityCost']+= run['oppurtunityCost']
+            queue['errorCost'] += run['errorCost']
+            simulatedSchedule['errorCost']+= run['errorCost']
+            queue['totalCost'] += run['totalCost']
+            simulatedSchedule['totalCost']+= run['totalCost']
 
     maxTime = 0.0
-    for queue in schedule['queues']:
+    for queue in simulatedSchedule['queues']:
         if queue['requiredTime'] > maxTime:
             maxTime = queue['requiredTime']
 
-    schedule['requiredTime'] =  maxTime
-    schedule['overheadCost'] = schedule['requiredTime']*overheadCost
-    schedule['totalCost'] += schedule['overheadCost']
+    simulatedSchedule['requiredTime'] =  maxTime
+    simulatedSchedule['overheadCost'] = simulatedSchedule['requiredTime']*simulatedSchedule['overheadCostRate']
+    simulatedSchedule['totalCost'] += simulatedSchedule['overheadCost']
 
-    return schedule
+    return simulatedSchedule
+
 
 def SimpleScheduleValidator(schedule,orders):
     validFlag = True
