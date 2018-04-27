@@ -64,7 +64,7 @@ def TemporalConsistencyCheck(run,checkOrder):
 
     return validFlag
 
-def PrettyPrintSchedule(schedule):
+def PrettyPrintSimulatedSchedule(schedule):
     for queue in schedule['queues']:
         print('Truck ',queue['truck']['id'],' with capacity of ',queue['truck']['capacity'])
         if len(queue['runs']) == 0:
@@ -457,7 +457,7 @@ def RandomOptimizer(trucks,orders,attempts,verbose):
 print('using randomOptimizer')
 exampleSchedule = RandomOptimizer(exampleTrucks,exampleOrders,10000)
 print('schedule passes validation? ', SimpleScheduleValidator(exampleSchedule,exampleOrders))
-PrettyPrintSchedule(exampleSchedule)
+PrettyPrintSimulatedSchedule(exampleSchedule)
 print('total cost of schedule: $',exampleSchedule['totalCost'])
 print('total time of schedule: ',exampleSchedule['requiredTime'],'h')
 '''
