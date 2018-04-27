@@ -349,7 +349,10 @@ def RandomOptimizer(trucks,orders,attempts,verbose):
     canidateSchedules = []
     bestCost = inf
     bestSchedule = SimpleScheduleRunner(RandomRouter(trucks,orders),False)
-    for i in range(attempts):
+    for ii in range(attempts):
+        if ii%1000 == 0:
+            if verbose:
+                print('RandomOptimizer testing iteration # {0:d}'.format(ii))
         canidateSchedules.append(SimpleScheduleRunner(RandomRouter(trucks,orders),False))
 
     for schedule in canidateSchedules:
