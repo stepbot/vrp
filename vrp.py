@@ -259,12 +259,15 @@ def SimpleScheduleRunner(schedule,verbose):
                 queue['requiredTime'] += marginalTime
 
                 if truck['time'] > order['timeWindowEnd']:
-                    queue['errorTime'] += truck['time']-order['timeWindowEnd']
+                    run['errorTime'] += truck['time']-order['timeWindowEnd']
+                    queue['errorTime'] += run['errorTime']
 
                 elif truck['time'] < order['timeWindowStart']:
-                    queue['errorTime'] += order['timeWindowStart']-truck['time']
+                    run['errorTime'] += order['timeWindowStart']-truck['time']
+                    queue['errorTime'] += run['errorTime']
 
                 else:
+                    run['errorTime'] += 0
                     queue['errorTime'] += 0
 
                 if verbose:
