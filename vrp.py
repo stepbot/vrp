@@ -257,7 +257,7 @@ def SimpleScheduleEval(schedule):
                         errorTime += truckTime-order['timeWindowEnd']
 
                     elif truckTime < order['timeWindowStart']:
-                        errorTime += order['timeWindowEnd']-truckTime
+                        errorTime += order['timeWindowStart']-truckTime
 
                     else:
                         errorTime += 0
