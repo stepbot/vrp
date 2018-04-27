@@ -91,11 +91,6 @@ def PrettyPrintSchedule(schedule):
 def RandomRouter(trucks,orders):
     schedule = {}
     schedule['queues'] = []
-    schedule['directCost'] = inf
-    schedule['oppurtunityCost'] = inf
-    schedule['totalCost'] = inf
-    schedule['requiredTime'] = inf
-    schedule['truckStartTime'] = 7
     schedule['speed'] = 45
     schedule['overheadCostRate'] = 270
     schedule['lateTimeErrorCostRate'] = 3*schedule['overheadCostRate']
@@ -150,10 +145,6 @@ def RandomRouter(trucks,orders):
         queue = {}
         queue['truck'] = truck
         queue['runs'] = []
-        queue['directCost'] = inf
-        queue['oppurtunityCost'] = inf
-        queue['totalCost'] = inf
-        queue['requiredTime'] = inf
         schedule['queues'].append(queue)
 
     shuffle(runs)
@@ -224,6 +215,7 @@ def SimpleScheduleRunner(schedule,verbose):
     # cost tracking variables for schedulewide tracking
     simulatedSchedule['directCost'] = 0.0
     simulatedSchedule['oppurtunityCost'] = 0.0
+    simulatedSchedule['reverseOppurtunityCost'] = 0.0
     simulatedSchedule['overheadCost'] = 0.0
     simulatedSchedule['errorCost'] = 0.0
     simulatedSchedule['totalCost'] = 0.0
@@ -235,6 +227,7 @@ def SimpleScheduleRunner(schedule,verbose):
         # cost tracking variables for per queue tracking
         queue['directCost'] = 0.0
         queue['oppurtunityCost'] = 0.0
+        queue['reverseOppurtunityCost'] = 0.0
         queue['errorCost'] = 0.0
         queue['totalCost'] = 0.0
         queue['requiredTime'] = 0.0
@@ -255,6 +248,7 @@ def SimpleScheduleRunner(schedule,verbose):
             # cost tracking variables for per run tracking
             run['directCost'] = 0.0
             run['oppurtunityCost'] = 0.0
+            run['reverseOppurtunityCost'] = 0.0
             run['errorCost'] = 0.0
             run['totalCost'] = 0.0
             run['requiredTime'] = 0.0
@@ -294,6 +288,7 @@ def SimpleScheduleRunner(schedule,verbose):
                 order['servedAt'] = truck['time']
                 run['requiredTime'] += marginalTime
                 queue['requiredTime'] += marginalTime
+
 
                 # check if order was served on time and apply necessary penalties
                 if truck['time'] > order['timeWindowEnd']:
@@ -358,14 +353,21 @@ def SimpleScheduleRunner(schedule,verbose):
             run['directCost'] = run['costMultiplier']*run['requiredTime']*int(truck['cost'])
 
             # oppurtunity cost is a fraction of the the direct cost of the run allocated in proportion to the underutilized capacity on truck
-            if run['costMultiplier'] != 1:
+            if run['costMultiplier'] == 1:
                 # only oppurtunity cost when not overcapacity
                 run['oppurtunityCost'] = run['directCost']*((truck['capacity']-run['quantity'])/truck['capacity'])
+
             else:
                 run['oppurtunityCost'] = 0
 
+            for order in run['orders']:
+                # iterate through each order in the run and calculate reverseOppurtunityCost
+
+                # reverse oppurtunity cost is a penalty for using an oversized truck
+                run['reverseOppurtunityCost'] = run['directCost']*((truck['capacity']-order['quantity'])/truck['capacity'])
+
             # combine run cost contributers
-            run['totalCost'] = run['directCost']+run['oppurtunityCost']+run['errorCost']
+            run['totalCost'] = run['directCost']+run['oppurtunityCost']+run['errorCost']+run['reverseOppurtunityCost']
 
             # accumulate error time to schedule
             simulatedSchedule['errorTime']+= queue['errorTime']
@@ -373,12 +375,14 @@ def SimpleScheduleRunner(schedule,verbose):
             # accumulate run costs to queue
             queue['directCost'] += run['directCost']
             queue['oppurtunityCost'] += run['oppurtunityCost']
+            queue['reverseOppurtunityCost'] += run['reverseOppurtunityCost']
             queue['errorCost'] += run['errorCost']
             queue['totalCost'] += run['totalCost']
 
             # accumulate run costs to schedule
             simulatedSchedule['directCost']+= run['directCost']
             simulatedSchedule['oppurtunityCost']+= run['oppurtunityCost']
+            simulatedSchedule['reverseOppurtunityCost'] += run['reverseOppurtunityCost']
             simulatedSchedule['errorCost']+= run['errorCost']
             simulatedSchedule['totalCost']+= run['totalCost']
 
