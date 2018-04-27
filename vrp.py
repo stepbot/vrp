@@ -1,4 +1,4 @@
-from random import randint,uniform,shuffle,choice
+from random import randint,uniform,shuffle,choice,lognormvariate
 from math import sqrt,inf,exp
 from operator import itemgetter
 from collections import deque
@@ -10,11 +10,17 @@ def OrderGenerator(numOfOrders,quantityLimit,distanceLimit):
     deliveryWindowEndLimit = 17
     deliveryWindowLengthMinLimit = 2
     deliveryWindowLengthMaxLimit = deliveryWindowEndLimit-deliveryWindowStartLimit
+
+
     orders = []
     for i in range(numOfOrders):
         order = {}
         order['id']=i
-        order['quantity']=randint(1,quantityLimit)
+
+        order['quantity']=quantityLimit+1
+        while order['quantity'] > quantityLimit:
+            order['quantity']=int(round(lognormvariate(1.609,1)))
+
         order['x']=uniform(0,distanceLimit)
         order['y']=uniform(0,distanceLimit)
         order['timeWindowLength']=randint(deliveryWindowLengthMinLimit,deliveryWindowLengthMaxLimit)
