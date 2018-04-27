@@ -71,16 +71,16 @@ def PrettyPrintSchedule(schedule):
             print('Not used')
         else:
             for ii in range(len(queue['runs'])):
-                print('\tRun ',ii,' total of ',queue['runs'][ii]['quantity'],' units')
+                print('\tRun #',ii,' total of ',queue['runs'][ii]['quantity'],' units')
                 for order in queue['runs'][ii]['orders']:
                     if order['servedAt'] > order['timeWindowEnd']:
-                        print('\t\tOrder ',order['id'],' of ',order['quantity'],' units served late @ ',order['servedAt'])
+                        print('\t\tOrder #',order['id'],' of ',order['quantity'],' units served late @ ',order['servedAt'])
 
                     elif order['servedAt'] < order['timeWindowStart']:
-                        print('\t\tOrder ',order['id'],' of ',order['quantity'],' units served early @ ',order['servedAt'])
+                        print('\t\tOrder #',order['id'],' of ',order['quantity'],' units served early @ ',order['servedAt'])
 
                     else:
-                        print('\t\tOrder ',order['id'],' of ',order['quantity'],' units served on time @ ',order['servedAt'])
+                        print('\t\tOrder #',order['id'],' of ',order['quantity'],' units served on time @ ',order['servedAt'])
 
 
 
