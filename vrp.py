@@ -355,12 +355,15 @@ def RandomOptimizer(trucks,orders,attempts,verbose):
                 print('RandomOptimizer testing iteration # {0:d}'.format(ii))
         canidateSchedules.append(SimpleScheduleRunner(RandomRouter(trucks,orders),False))
 
+    if verbose:
+        print('comparing canidate schedules')
+
     for schedule in canidateSchedules:
         if schedule['totalCost'] < bestCost:
             bestSchedule = schedule
             bestCost = schedule['totalCost']
             if verbose:
-                print('RandomOptimizer cost {0:.2f}'.format(bestCost))
+                print('\tRandomOptimizer cost {0:.2f}'.format(bestCost))
 
     return bestSchedule
 
