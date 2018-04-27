@@ -348,7 +348,7 @@ def SimpleScheduleValidator(schedule,orders):
 def RandomOptimizer(trucks,orders,attempts):
     canidateSchedules = []
     bestCost = inf
-    bestSchedule = SimpleScheduleEval(RandomRouter(trucks,orders))
+    bestSchedule = SimpleScheduleRunner(RandomRouter(trucks,orders),False)
     for i in range(attempts):
         canidateSchedules.append(SimpleScheduleEval(RandomRouter(trucks,orders)))
 
