@@ -92,7 +92,9 @@ def RandomRouter(trucks,orders):
     schedule['truckStartTime'] = 7
     schedule['speed'] = 45
     schedule['overheadCostRate'] = 270
-    schedule['timeErrorCostRate'] = 2*schedule['overheadCostRate']
+    schedule['lateTimeErrorCostRate'] = 3*schedule['overheadCostRate']
+    schedule['earlyTimeErrorCostRate'] = 2*schedule['overheadCostRate']
+
 
     runs = []
     shuffle(orders)
@@ -262,9 +264,13 @@ def SimpleScheduleRunner(schedule,verbose):
                     run['errorTime'] += truck['time']-order['timeWindowEnd']
                     queue['errorTime'] += run['errorTime']
 
+                    run['errorCost'] += run['errorTime']*simulatedSchedule['lateTimeErrorCostRate']
+
                 elif truck['time'] < order['timeWindowStart']:
                     run['errorTime'] += order['timeWindowStart']-truck['time']
                     queue['errorTime'] += run['errorTime']
+
+                    run['errorCost'] += run['errorTime']*simulatedSchedule['earlyTimeErrorCostRate']
 
                 else:
                     run['errorTime'] += 0
@@ -297,7 +303,6 @@ def SimpleScheduleRunner(schedule,verbose):
 
             run['directCost'] = run['costMultiplier']*run['requiredTime']*int(truck['cost'])
             run['oppurtunityCost'] = run['directCost']*((truck['capacity']-run['quantity'])/truck['capacity'])
-            run['errorCost'] = run['errorTime']*simulatedSchedule['timeErrorCostRate']
             run['totalCost'] = run['directCost']+run['oppurtunityCost']+run['errorCost']
 
             queue['directCost'] += run['directCost']
